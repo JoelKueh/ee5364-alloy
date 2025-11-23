@@ -96,22 +96,16 @@ pred RobUpdateIssued[eIss: RobEntry] {
     (#eIss.Inputs' >= 1 && #eIss.Inputs' <= 2)
 
     // Handle dependence for issued instruction.
-    all inst: InstrRecord {
-        
-    }
     all e: RobEntry | all r: eIss.Inputs' | (
         (e = eIss) implies (
             // No self-dependence
-            not (e in eIss.Deps') &&
-            not (e.Instr in eIss.InputsProducedBy')
+            not (e in eIss.Deps')
         ) else not (e.Output = r) implies (
             // If output of previous is not input to current, then not dependence.
-            not (e in eIss.Deps') &&
-            not (e.Instr in eIss.InputsProducedBy')
+            not (e in eIss.Deps')
         ) else not (e.Output.Reserver = e) implies (
             // Non-transitive dependence graph.
-            not (e in eIss.Deps') &&
-            not (e.Instr in eIss.InputsProducedBy')
+            not (e in eIss.Deps')
         ) else (e.State = RobCommitReady) implies (
             // Value can be issued from the ROB.
             not (e in eIss.Deps') &&
@@ -122,8 +116,7 @@ pred RobUpdateIssued[eIss: RobEntry] {
             e.Instr in eIss.InputsProducedBy'
         ) else (
             // In all other cases, we have dependence.
-            e in eIss.Deps' &&
-            not (e.Instr in eIss.InputsProducedBy')
+            e in eIss.Deps'
         )
     )
 
@@ -133,13 +126,12 @@ pred RobUpdateIssued[eIss: RobEntry] {
     eIss.State' = RobReserved
 }
 
-pred RobUpdateIssued_NoCDB[eIss: RobEntry] {
+pred RobUpdateIssued_WARVulnerable[eIss: RobEntry] {
     // Instruction number is based on the current count.
     eIss.Instr' = CurrentInstr.i
 
     // Registers can have 1 to 2 inputs.
     (#eIss.Inputs' >= 1 && #eIss.Inputs' <= 2)
-    no eIss.InputsProducedBy'
 
     // Handle dependence for issued instruction.
     all e: RobEntry | all r: eIss.Inputs' | (
@@ -152,6 +144,14 @@ pred RobUpdateIssued_NoCDB[eIss: RobEntry] {
         ) else not (e.Output.Reserver = e) implies (
             // Non-transitive dependence graph.
             not (e in eIss.Deps')
+        ) else (e.State = RobCommitReady) implies (
+            // Value can be issued from the ROB.
+            not (e in eIss.Deps') &&
+            eIss.InputsProducedBy = eIss.InputsProducedBy + e.Instr
+        ) else (e = WritebackEntry.ent) implies (
+            // Value can be issued from the CDB.
+            not (e in eIss.Deps') &&
+            eIss.InputsProducedBy = eIss.InputsProducedBy + e.Instr
         ) else (
             // In all other cases, we have dependence.
             e in eIss.Deps'
@@ -197,23 +197,6 @@ pred RobUpdatePassive[ePassive: RobEntry] {
     )
 }
 
-pred RobUpdatePassive_NoCDB[ePassive: RobEntry] {
-    // These fields do not change.
-    ePassive.Instr' = ePassive.Instr
-	ePassive.Inputs' = ePassive.Inputs
-    ePassive.Output' = ePassive.Output
-    ePassive.State' = ePassive.State
-
-    // Update dependenceis based on the current instruction in writeback.
-    (some CommitEntry.ent && CommitEntry.ent in ePassive.Deps) implies (
-        ePassive.Deps' = ePassive.Deps - CommitEntry.ent &&
-        ePassive.InputsProducedBy' = ePassive.InputsProducedBy + CommitEntry.ent.Instr
-    ) else (
-        ePassive.Deps' = ePassive.Deps &&
-        ePassive.InputsProducedBy' = ePassive.InputsProducedBy
-    )
-}
-
 // Fact that updates Rob Entries.
 pred UpdateRob {
     // Issued, Completed, and Committed entries have special update functions.
@@ -227,21 +210,6 @@ pred UpdateRob {
         not e = WritebackEntry.ent &&
         not e = CommitEntry.ent) implies (
         RobUpdatePassive[e]
-    )
-}
-
-pred UpdateRob_NoCDB {
-    // Issued, Completed, and Committed entries have special update functions.
-    some IssueEntry.ent => RobUpdateIssued_NoCDB[IssueEntry.ent]
-    some WritebackEntry.ent => RobUpdateCompleted[WritebackEntry.ent]
-    some CommitEntry.ent => RobUpdateCommitted[CommitEntry.ent]
-
-    // All other registers just update dependencies and cycles to completion.
-    all e: RobEntry | (
-        not e = IssueEntry.ent && 
-        not e = WritebackEntry.ent &&
-        not e = CommitEntry.ent) implies (
-        RobUpdatePassive_NoCDB[e]
     )
 }
 
@@ -274,6 +242,12 @@ pred OrderedCommit {
     (no CommitEntry.ent)
 }
 
+// ERROR: Tomasulos without CDB or issue from ROB is vulnerable to WAR dependence!
+pred RobNoCDB {
+
+}
+
+// ERROR: RandomCommit is vulnerable to WAW depencence!
 pred RobRandomCommit {
     always {
         SingleIssue
@@ -304,16 +278,9 @@ pred NoWAWHazard {
     )
 }
 
-// ERROR: Tomasulos without CDB or issue from ROB is vulnerable to WAR dependence!
 pred RobWARVulnerable {
-    always {
-        RobRandomCommit
-        UpdateRegs
-        UpdateRob_NoCDB
-    }
 }
 
-// ERROR: RandomCommit is vulnerable to WAW depencence!
 pred RobWAWVulnerable {
     always {
         RobRandomCommit
@@ -332,7 +299,7 @@ pred RobComplete {
 
 // Assertions for WAR and WAW depencences.
 assert NoWARHazard_WARVulnerable {
-    RobWARVulnerable => NoWARHazard
+    
 }
 
 assert NoWARHazard_Complete {
@@ -349,9 +316,8 @@ assert NoWAWHazard_Complete {
 
 //*<BEGIN_RUN_COMMANDS>*//
 
-//check NoWARHazard_WARVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
 //check NoWAWHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-//check NoWARHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+check NoWARHazard_Complete for exactly 2 RobEntry, exactly 2 Register, 5 InstrRecord, 5 steps, 4 Int
 //check NoWAWHazard_WAWVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
 //check NoWAWHazard_Complete for exactly 2 RobEntry, exactly 2 Register, exactly 6 InstrRecord, 6 steps, 4 Int
 //check NoWARHazard_WARVulnerable for exactly 2 RobEntry, exactly 2 Register, exactly 6 InstrRecord, 6 steps, 4 Int

@@ -1,0 +1,13 @@
+
+---
+commands:
+#  - "check NoWAWHazard_WAWVulnerable for exactly {1} RobEntry, exactly {1} Register, {2} InstrRecord, {2} steps, 4 Int"
+  - "check NoWAWHazard_Complete for exactly {1} RobEntry, exactly {1} Register, {2} InstrRecord, {2} steps, 4 Int"
+#  - "check NoWARHazard_WARVulnerable for exactly {1} RobEntry, exactly {1} Register, {2} InstrRecord, {2} steps, 4 Int"
+  - "check NoWARHazard_Complete for exactly {1} RobEntry, exactly {1} Register, {2} InstrRecord, {2} steps, 4 Int"
+sweeps:
+  - 2
+  - 2
+starting_point:
+  - 4
+  - 8

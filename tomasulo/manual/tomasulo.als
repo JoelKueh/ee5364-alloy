@@ -69,7 +69,7 @@ pred UpdateRegs {
     )
 
     all r: Register | (
-        (some IssueEntry.ent && IssueEntry.ent.Output = r) implies (
+        IssueEntry.ent.Output' = r implies (
             r.Reserver' = IssueEntry.ent
         ) else (CommitEntry.ent.Output = r && r.Reserver = CommitEntry.ent) implies (
             no r.Reserver'
@@ -95,35 +95,50 @@ pred RobUpdateIssued[eIss: RobEntry] {
     // Registers can have 1 to 2 inputs.
     (#eIss.Inputs' >= 1 && #eIss.Inputs' <= 2)
 
-    // Handle dependence for issued instruction.
-    all inst: InstrRecord {
-        
+    // Handle value production times for all registers and in-flight instructions.
+    all inst: InstrRecord | all e: RobEntry | all r: Register | e.Instr = inst implies (
+        // Value can be read off of the CDB.
+        (e.Output in eIss.Inputs' && not e in eIss.Deps') implies (
+            inst in eIss.InputsProducedBy'
+        ) else (
+            not inst in eIss.InputsProducedBy'
+        )
+    ) else r.ProducedBy = inst implies (
+        // If produced-by value is in a register, then take it.
+        r in eIss.Inputs' implies (
+            inst in eIss.InputsProducedBy'
+        ) else (
+            not inst in eIss.InputsProducedBy'
+        )
+    )
+
+    all inst: InstrRecord | {
+        not (some e: RobEntry | some r: Register | (e.Instr = inst || r.ProducedBy = inst)) implies (
+            // If there is no RobEntry or Register associated with inst, then no dependence.
+            not inst in eIss.InputsProducedBy'
+        )
     }
+
+    // Handle dependence for issued instruction.
     all e: RobEntry | all r: eIss.Inputs' | (
         (e = eIss) implies (
             // No self-dependence
-            not (e in eIss.Deps') &&
-            not (e.Instr in eIss.InputsProducedBy')
+            not (e in eIss.Deps')
         ) else not (e.Output = r) implies (
             // If output of previous is not input to current, then not dependence.
-            not (e in eIss.Deps') &&
-            not (e.Instr in eIss.InputsProducedBy')
+            not (e in eIss.Deps')
         ) else not (e.Output.Reserver = e) implies (
             // Non-transitive dependence graph.
-            not (e in eIss.Deps') &&
-            not (e.Instr in eIss.InputsProducedBy')
+            not (e in eIss.Deps')
         ) else (e.State = RobCommitReady) implies (
             // Value can be issued from the ROB.
-            not (e in eIss.Deps') &&
-            e.Instr in eIss.InputsProducedBy'
+            not (e in eIss.Deps')
         ) else (e = WritebackEntry.ent) implies (
             // Value can be issued from the CDB.
-            not (e in eIss.Deps') &&
-            e.Instr in eIss.InputsProducedBy'
+            not (e in eIss.Deps')
         ) else (
             // In all other cases, we have dependence.
-            e in eIss.Deps' &&
-            not (e.Instr in eIss.InputsProducedBy')
+            e in eIss.Deps'
         )
     )
 
@@ -139,7 +154,23 @@ pred RobUpdateIssued_NoCDB[eIss: RobEntry] {
 
     // Registers can have 1 to 2 inputs.
     (#eIss.Inputs' >= 1 && #eIss.Inputs' <= 2)
-    no eIss.InputsProducedBy'
+
+    // Handle value production times for all registers and in-flight instructions.
+    all inst: InstrRecord | all r: Register | r.ProducedBy = inst implies (
+        // If produced-by value is in a register, then take it.
+        r in eIss.Inputs implies (
+            inst in eIss.InputsProducedBy'
+        ) else (
+            not inst in eIss.InputsProducedBy'
+        )
+    )
+
+    // If there is no register associated with inst, then no dependence.
+    all inst: InstrRecord | {
+        not (some r: Register | r.ProducedBy = inst) implies (
+            not inst in eIss.InputsProducedBy'
+        )
+    }
 
     // Handle dependence for issued instruction.
     all e: RobEntry | all r: eIss.Inputs' | (
@@ -167,7 +198,9 @@ pred RobUpdateIssued_NoCDB[eIss: RobEntry] {
 pred RobUpdateCompleted[eComp: RobEntry] {
     // These fields do not change.
     eComp.Instr' = eComp.Instr
+    eComp.Inputs' = eComp.Inputs
     no eComp.Deps'
+    eComp.InputsProducedBy' = eComp.InputsProducedBy
     eComp.Output' = eComp.Output
     eComp.State' = RobCommitReady
 }
@@ -176,6 +209,8 @@ pred RobUpdateCommitted[eCommit: RobEntry] {
     // Rob becomes empty.
     no eCommit.Instr'
     no eCommit.Inputs'
+    no eCommit.Deps'
+    no eCommit.InputsProducedBy'
     no eCommit.Output'
     eCommit.State' = RobFree
 }
@@ -188,7 +223,7 @@ pred RobUpdatePassive[ePassive: RobEntry] {
     ePassive.State' = ePassive.State
 
     // Update dependenceis based on the current instruction in writeback.
-    (some WritebackEntry.ent && WritebackEntry.ent in ePassive.Deps) implies (
+    (WritebackEntry.ent in ePassive.Deps) implies (
         ePassive.Deps' = ePassive.Deps - WritebackEntry.ent &&
         ePassive.InputsProducedBy' = ePassive.InputsProducedBy + WritebackEntry.ent.Instr
     ) else (
@@ -256,7 +291,7 @@ pred SingleIssue {
 
 pred SingleWriteback {
     // Writeback any instruction.
-    (some e: RobEntry | e.State = RobReserved && WritebackEntry.ent = e) ||
+    (some e: RobEntry | e.State = RobReserved && no e.Deps && WritebackEntry.ent = e) ||
     (no WritebackEntry.ent)
 }
 
@@ -269,7 +304,7 @@ pred RandomCommit {
 pred OrderedCommit {
     // Commit the entry with the lowest InstrNum.
     (some e1: RobEntry | all e2: RobEntry | e1.State = RobCommitReady &&
-        (e2.State = RobCommitReady => lt[e1.Instr, e2.Instr]) &&
+        (not e2.State = RobFree => e1 = e2 || e1.Instr in prevs[e2.Instr]) &&
         CommitEntry.ent = e1) ||
     (no CommitEntry.ent)
 }
@@ -349,13 +384,12 @@ assert NoWAWHazard_Complete {
 
 //*<BEGIN_RUN_COMMANDS>*//
 
-//check NoWARHazard_WARVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-//check NoWAWHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-//check NoWARHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-//check NoWAWHazard_WAWVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-//check NoWAWHazard_Complete for exactly 2 RobEntry, exactly 2 Register, exactly 6 InstrRecord, 6 steps, 4 Int
-//check NoWARHazard_WARVulnerable for exactly 2 RobEntry, exactly 2 Register, exactly 6 InstrRecord, 6 steps, 4 Int
-//check NoWAWHazard_WAWVulnerable for exactly 2 RobEntry, exactly 2 Register, exactly 6 InstrRecord, 6 steps, 4 Int
+check NoWARHazard_WARVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+check NoWARHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+check NoWAWHazard_WAWVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+check NoWAWHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 6 InstrRecord, 6 steps, 4 Int
 
 run {RobComplete} for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+run {RobWARVulnerable} for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+run {RobWAWVulnerable} for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
 

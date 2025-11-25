@@ -38,9 +38,11 @@ local function run_single_test(f, model, run_command, deps, vals)
 
         -- Replace any dependent sweeps.
         if #deps >= i then
-            local func, _ = load("return " .. string.gsub(deps[i], "{v}", vals[i]))
-            assert(func)
-            com = string.gsub(com, "{d" .. i .. "}", func())
+            for j = 1, #deps[i] do
+                local func, _ = load("return " .. string.gsub(deps[i][j], "{v}", vals[i]))
+                assert(func)
+                com = string.gsub(com, "{d" .. i .. "," .. j .. "}", func())
+            end
         end
     end
 
@@ -52,6 +54,10 @@ local function run_single_test(f, model, run_command, deps, vals)
     summary = string.gsub(summary, "run ", "")
     summary = string.gsub(summary, " for ", ": ")
     summary = string.gsub(summary, "exactly ", "")
+    summary = string.gsub(summary, "fun ", "")
+    summary = string.gsub(summary, ": Int ", "")
+    summary = string.gsub(summary, "\n", ", ")
+    summary = string.gsub(summary, " ,", ",")
 
     -- Run the command.
     local handle = assert(io.popen(

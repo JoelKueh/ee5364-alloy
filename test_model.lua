@@ -1,6 +1,7 @@
 #!/bin/lua
 
 local lyaml = require("lyaml")
+local lfs = require("lfs")
 local yaml_fname = arg[1]
 local model_fname = arg[2]
 
@@ -111,7 +112,8 @@ local function run_sweep(model, run_command, sweeps, starting_point, names)
 
     -- Prepare the output file.
     local name = string.gsub(basename(model), ".als", "")
-    local fname = "./output/" .. name .. "_" .. test_name
+    local fname = "./output/" .. name .. "_" .. test_name .. "_" .. os.time() .. ".csv"
+    assert(os.execute("mkdir -p ./output/"))
     local f = assert(io.open(fname, "w"))
     for _, n in ipairs(names) do
         f:write('"' .. n .. '",')

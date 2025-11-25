@@ -11,3 +11,6 @@ sweeps:
 starting_point:
   - 4
   - 8
+names:
+  - "RegsAndRobEntries"
+  - "Steps"

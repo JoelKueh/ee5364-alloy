@@ -384,12 +384,12 @@ assert NoWAWHazard_Complete {
 
 //*<BEGIN_RUN_COMMANDS>*//
 
-check NoWARHazard_WARVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-check NoWARHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-check NoWAWHazard_WAWVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-check NoWAWHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 6 InstrRecord, 6 steps, 4 Int
+check NoWARHazard_WARVulnerable for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
+check NoWARHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
+check NoWAWHazard_WAWVulnerable for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
+check NoWAWHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
 
-run {RobComplete} for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-run {RobWARVulnerable} for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
-run {RobWAWVulnerable} for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
+run {RobComplete} for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
+run {RobWARVulnerable} for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
+run {RobWAWVulnerable} for exactly 4 RobEntry, exactly 4 Register, 8 InstrRecord, 8 steps, 4 Int
 

@@ -10,7 +10,7 @@ run_command=$2
 
 # Edit the file to contain our run command.
 mkdir -p $TEMP_DIR
-rm -rf $TEMP_OUTPUT
+rm -rf $TEMP_OUTPUT $TEMP_MODEL $TEMP_RECEIPT
 cp $model $TEMP_MODEL
 sed -i '/\/\/\*<BEGIN_RUN_COMMANDS>\*\/\//q' $TEMP_MODEL
 echo "$run_command" >>$TEMP_MODEL
@@ -28,10 +28,10 @@ if [[ $exit_code != 0 ]]; then
 fi
 
 # Echo the result.
-if [[ $result == *SAT* ]]; then
-    result='SAT'
-else
+if [[ "$result" == *UNSAT* ]]; then
     result='UNSAT'
+else
+    result='SAT'
 fi
 time=$(($end_ms - $start_ms))
 echo "$result $time"

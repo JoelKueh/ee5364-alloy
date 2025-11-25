@@ -72,5 +72,7 @@ pred EventuallyFullThenEmpty {
     }
 }
 
-run EventuallyFullThenEmpty for exactly 3 FifoNode, 6 steps, 5 Int
-//run {} for exactly 3 FifoNode, 6 steps, 5 Int
+//*<BEGIN_RUN_COMMANDS>*//
+
+run EventuallyFullThenEmpty for exactly 6 FifoNode, 12 steps, 5 Int
+run {} for exactly 6 FifoNode, 8 steps, 5 Int

@@ -4,6 +4,7 @@ local lyaml = require("lyaml")
 local lfs = require("lfs")
 local yaml_fname = arg[1]
 local model_fname = arg[2]
+local timeout
 
 local YELLOW_BOLD="\27[33;1m"
 local GREEN_BOLD="\27[32;1m"
@@ -26,11 +27,21 @@ local function load_yaml(path)
     return lyaml.load(content)
 end
 
-local function run_single_test(f, model, run_command, vals)
+local function run_single_test(f, model, run_command, deps, vals)
     -- Prepare the run command.
     local com = run_command
-    for i = 1, 2 do
-        com = string.gsub(com, "{" .. i .. "}", vals[i])
+    for i = 1,5 do
+        -- Replace the first sweep.
+        if #vals >= i then
+            com = string.gsub(com, "{" .. i .. "}", vals[i])
+        end
+
+        -- Replace any dependent sweeps.
+        if #deps >= i then
+            local func, _ = load("return " .. string.gsub(deps[i], "{v}", vals[i]))
+            assert(func)
+            com = string.gsub(com, "{d" .. i .. "}", func())
+        end
     end
 
     -- Prepare the command summary.
@@ -43,7 +54,8 @@ local function run_single_test(f, model, run_command, vals)
     summary = string.gsub(summary, "exactly ", "")
 
     -- Run the command.
-    local handle = assert(io.popen(string.format("./test_model.sh \"%s\" \"%s\"", model, com)))
+    local handle = assert(io.popen(
+        string.format("./test_model.sh \"%s\" \"%s\" \"%s\"", model, com, timeout)))
     local output = handle:read("*a")
     handle:close()
 
@@ -73,14 +85,17 @@ local function run_single_test(f, model, run_command, vals)
 
     -- Write information about the run to a file.
     if result ~= 'TIMEOUT' then
-        f:write(vals[1] .. "," .. vals[2] .. "," .. result .. "," .. time .. "\n")
+        for _, n in ipairs(vals) do
+            f:write(n .. ',')
+        end
+        f:write(result .. "," .. time .. "\n")
     end
 
     -- Return the result
     return result ~= 'TIMEOUT'
 end
 
-local function sweeping(f, model, run_command, i, sweeps, starting_point)
+local function sweeping(f, model, run_command, i, sweeps, deps, starting_point)
     local vals = {}
     for k, v in pairs(starting_point) do
         vals[k] = v
@@ -88,12 +103,12 @@ local function sweeping(f, model, run_command, i, sweeps, starting_point)
     local count = 0
 
     if i == #vals then
-        while run_single_test(f, model, run_command, vals) do
+        while run_single_test(f, model, run_command, deps, vals) do
             vals[i] = vals[i] + sweeps[i]
             count = count + 1
         end
     else
-        while sweeping(f, model, run_command, i + 1, sweeps, vals) do
+        while sweeping(f, model, run_command, i + 1, sweeps, deps, vals) do
             vals[i] = vals[i] + sweeps[i]
             count = count + 1
         end
@@ -102,7 +117,7 @@ local function sweeping(f, model, run_command, i, sweeps, starting_point)
     return count > 0
 end
 
-local function run_sweep(model, run_command, sweeps, starting_point, names)
+local function run_sweep(model, run_command, sweeps, deps, starting_point, names)
     -- Slice off the name of the test from the run_command.
     local test_name = run_command
     local idx = string.find(test_name, " ")
@@ -121,12 +136,12 @@ local function run_sweep(model, run_command, sweeps, starting_point, names)
     f:write('"Result","Time"\n')
 
     -- Call recursive helper to do the sweep.
-    sweeping(f, model, run_command, 1, sweeps, starting_point)
+    sweeping(f, model, run_command, 1, sweeps, deps, starting_point)
 end
 
 local table = load_yaml(yaml_fname)
+timeout = table['timeout']
 for _, command in ipairs(table['commands']) do
-    run_sweep(model_fname, command, table['sweeps'], table['starting_point'], table['names'])
+    run_sweep(model_fname, command, table['sweeps'], table['deps'], table['starting_point'], table['names'])
 end
-
 

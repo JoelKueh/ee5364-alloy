@@ -1,0 +1,14 @@
+
+---
+commands:
+  - "run EventuallyFullThenEmpty for exactly {1} FifoNode, {d1} steps, 5 Int"
+sweeps:
+  - 1
+deps:
+  - "2 * {v}"
+starting_point:
+  - 1
+names:
+  - "RegsAndRobEntries"
+  - "Steps"
+timeout: "3600s"

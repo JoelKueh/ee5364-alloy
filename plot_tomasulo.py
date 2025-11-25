@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import csv
+import sys
 
-fname="./output/tomasulo_NoWARHazard_WARVulnerable_run1"
+fname=sys.argv[2]
 
 x = []
 y = []
@@ -23,7 +24,7 @@ ax.scatter(x, y)
 
 ax.set_xlabel('Number of Registers and ROB Entries')
 ax.set_ylabel('Number of Steps')
-ax.set_title('Tomasulos NoWARHazardVulnerable Runtimes')
+ax.set_title('Tomasulos ' + sys.argv[1] + ' Runtimes')
 
 plt.show()
 

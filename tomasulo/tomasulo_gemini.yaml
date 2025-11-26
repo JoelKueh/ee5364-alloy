@@ -15,4 +15,4 @@ starting_point:
 names:
   - "RegsAndRobEntries"
   - "Steps"
-timeout: "1000s"
+timeout: "300s"

@@ -321,6 +321,8 @@ pred SomeDependency {
 	}
 }
 
+//*<BEGIN_RUN_COMMANDS>*//
+
 check NoWARHazard_WARVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
 check NoWARHazard_Complete for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int
 check NoWAWHazard_WAWVulnerable for exactly 4 RobEntry, exactly 4 Register, 10 InstrRecord, 10 steps, 4 Int

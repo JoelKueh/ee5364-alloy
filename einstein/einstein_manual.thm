@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="beer"/>
+   <type name="Beverage"/>
+   <type name="bird"/>
+   <type name="blend"/>
+   <type name="blue"/>
+   <type name="blueMaster"/>
+   <type name="brit"/>
+   <type name="cat"/>
+   <type name="Cigar"/>
+   <type name="coffee"/>
+   <type name="Color"/>
+   <type name="dane"/>
+   <type name="dog"/>
+   <type name="dunhill"/>
+   <type name="fish"/>
+   <type name="german"/>
+   <type name="green"/>
+   <type name="horse"/>
+   <type name="House"/>
+   <type name="Int"/>
+   <type name="milk"/>
+   <type name="Nationality"/>
+   <type name="norwegian"/>
+   <type name="pall"/>
+   <type name="Pet"/>
+   <type name="prince"/>
+   <type name="red"/>
+   <type name="String"/>
+   <type name="swede"/>
+   <type name="tea"/>
+   <type name="univ"/>
+   <type name="water"/>
+   <type name="white"/>
+   <type name="yellow"/>
+   <type name="ordering/Ord"/>
+   <type name="seq/Int"/>
+   <set name="$first" type="House"/>
+   <set name="$last" type="House"/>
+</node>
+
+<edge visible="no">
+   <relation name="$h2"> <type name="House"/> <type name="House"/> </relation>
+   <relation name="$h2&apos;"> <type name="House"/> <type name="House"/> </relation>
+   <relation name="$h2&apos;&apos;&apos;"> <type name="House"/> <type name="House"/> </relation>
+</edge>
+
+<edge visible="no" label="$h2&apos;&apos;&apos;">
+   <relation name="$h2&apos;&apos;"> <type name="House"/> <type name="House"/> </relation>
+</edge>
+
+</view>
+
+</alloy>

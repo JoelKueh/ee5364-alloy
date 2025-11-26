@@ -1,0 +1,15 @@
+
+---
+commands:
+  - "run fill_and_then_empty for {d1,1} steps, {1} seq, {d1,2} Int\nfun capacity: Int { {1}}"
+sweeps:
+  - 1
+deps:
+  - - "2 * {v}"
+    - "math.max(math.floor(math.log({v}, 2) + 2.1), 5)"
+starting_point:
+  - 1
+names:
+  - "RegsAndRobEntries"
+  - "Steps"
+timeout: "3600s"

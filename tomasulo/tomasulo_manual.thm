@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="CommitEntry"/>
+   <type name="CurrentInstr"/>
+   <type name="Int"/>
+   <type name="IssueEntry"/>
+   <type name="Register"/>
+   <type name="RobEntry"/>
+   <type name="RobStatus"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="WritebackEntry"/>
+   <type name="ordering/Ord"/>
+   <type name="seq/Int"/>
+   <set name="$first" type="InstrRecord"/>
+   <set name="$last" type="InstrRecord"/>
+</node>
+
+<node visible="no">
+   <type name="InstrRecord"/>
+   <type name="Rfile"/>
+   <type name="Rob"/>
+   <type name="RobCommitReady"/>
+   <type name="RobFree"/>
+   <type name="RobReserved"/>
+</node>
+
+<edge attribute="no">
+   <relation name="Reserver"> <type name="Register"/> <type name="RobEntry"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="i"> <type name="CurrentInstr"/> <type name="InstrRecord"/> </relation>
+   <relation name="InputsProducedBy"> <type name="RobEntry"/> <type name="InstrRecord"/> </relation>
+   <relation name="Instr"> <type name="RobEntry"/> <type name="InstrRecord"/> </relation>
+   <relation name="ProducedBy"> <type name="Register"/> <type name="InstrRecord"/> </relation>
+   <relation name="State"> <type name="RobEntry"/> <type name="RobStatus"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
